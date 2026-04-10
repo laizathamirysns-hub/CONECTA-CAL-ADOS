@@ -1,0 +1,5 @@
+{
+  "name": "Conecta Calçados",
+  "description": "Plataforma moderna para o polo calçadista de Nova Serrana, conectando fabricantes e clientes com catálogo completo, controle de estoque e integração com WhatsApp.",
+  "requestFramePermissions": ["geolocation"]
+}

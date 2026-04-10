@@ -1,0 +1,145 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "A footwear product in the catalog",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Product name" },
+        "description": { "type": "string", "description": "Product description" },
+        "category": { "type": "string", "enum": ["Tênis", "Sandália", "Bota", "Chinelo"] },
+        "retailPrice": { "type": "number", "description": "Retail price" },
+        "wholesalePrice": { "type": "number", "description": "Wholesale price" },
+        "wholesaleMinQuantity": { "type": "number", "description": "Minimum quantity for wholesale price" },
+        "images": { "type": "array", "items": { "type": "string" } },
+        "colors": { 
+          "type": "array", 
+          "items": { 
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "hex": { "type": "string" }
+            }
+          }
+        },
+        "sizes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "size": { "type": "number" },
+              "quantity": { "type": "number" }
+            }
+          }
+        },
+        "featured": { "type": "boolean" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["name", "category", "retailPrice", "wholesalePrice", "wholesaleMinQuantity", "images", "colors", "sizes", "createdAt"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile data",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["customer", "admin"] },
+        "favorites": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["uid", "email", "role", "createdAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "A purchase order",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "items": { "type": "array" },
+        "subtotal": { "type": "number" },
+        "shippingCost": { "type": "number" },
+        "total": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "processing", "shipped", "delivered", "cancelled"] },
+        "type": { "type": "string", "enum": ["retail", "wholesale"] },
+        "shippingMethod": { "type": "string", "enum": ["delivery", "pickup"] },
+        "shippingDetails": { "type": "object" },
+        "customerInfo": { "type": "object" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["userId", "items", "total", "status", "type", "createdAt"]
+    },
+    "Job": {
+      "title": "Job",
+      "description": "A job posting",
+      "type": "object",
+      "properties": {
+        "companyName": { "type": "string" },
+        "role": { "type": "string" },
+        "description": { "type": "string" },
+        "requirements": { "type": "string" },
+        "contact": { "type": "string" },
+        "type": { "type": "string" },
+        "area": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["companyName", "role", "description", "contact", "type", "area", "createdAt"]
+    },
+    "JobApplication": {
+      "title": "JobApplication",
+      "description": "A job application",
+      "type": "object",
+      "properties": {
+        "jobId": { "type": "string" },
+        "candidateName": { "type": "string" },
+        "candidateEmail": { "type": "string" },
+        "candidatePhone": { "type": "string" },
+        "experience": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["jobId", "candidateName", "candidateEmail", "candidatePhone", "status", "createdAt"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "A user notification",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "type": "string", "enum": ["order", "job", "promo", "system"] },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["userId", "title", "message", "type", "read", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Footwear products"
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profiles"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Customer orders"
+    },
+    "/jobs/{jobId}": {
+      "schema": "Job",
+      "description": "Job postings"
+    },
+    "/applications/{applicationId}": {
+      "schema": "JobApplication",
+      "description": "Job applications"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "User notifications"
+    }
+  }
+}
