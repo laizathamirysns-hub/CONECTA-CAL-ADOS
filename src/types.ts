@@ -122,3 +122,37 @@ export interface PickupPoint {
   hours: string;
   distance?: string;
 }
+
+export interface UserEvent {
+  id: string;
+  userId: string;
+  title: string;
+  description: string;
+  date: string;
+  time: string;
+  location?: string;
+  createdAt: number;
+}
+
+export interface UserNote {
+  id: string;
+  userId: string;
+  title: string;
+  content: string;
+  color?: string;
+  createdAt: number;
+}
+
+export interface ChecklistItem {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
+export interface UserChecklist {
+  id: string;
+  userId: string;
+  title: string;
+  items: ChecklistItem[];
+  createdAt: number;
+}

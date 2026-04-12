@@ -1,5 +1,5 @@
 {
   "name": "Conecta Calçados",
-  "description": "Plataforma moderna para o polo calçadista de Nova Serrana, conectando fabricantes e clientes com catálogo completo, controle de estoque e integração com WhatsApp.",
+  "description": "O marketplace definitivo para o polo calçadista de Nova Serrana (MG). Uma plataforma premium que conecta fabricantes, lojistas e clientes com catálogo inteligente, preços de atacado/varejo, banco de empregos e gestão pessoal completa.",
   "requestFramePermissions": ["geolocation"]
 }

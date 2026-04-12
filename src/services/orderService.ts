@@ -3,93 +3,103 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { 
-  collection, 
-  getDocs, 
-  getDoc, 
-  doc, 
-  addDoc, 
-  updateDoc, 
-  query, 
-  where, 
-  orderBy,
-  onSnapshot
-} from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import { Order } from '../types';
 
-const COLLECTION_NAME = 'orders';
+const TABLE_NAME = 'orders';
 
 export const orderService = {
   async createOrder(order: Omit<Order, 'id'>): Promise<string> {
     try {
-      const docRef = await addDoc(collection(db, COLLECTION_NAME), {
-        ...order,
-        createdAt: Date.now()
-      });
-      return docRef.id;
+      const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .insert([{ ...order, created_at: Date.now() }])
+        .select();
+      
+      if (error) throw error;
+      return data?.[0]?.id || '';
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, COLLECTION_NAME);
+      console.error('Error creating order:', error);
       return '';
     }
   },
 
   async getOrdersByUser(userId: string): Promise<Order[]> {
     try {
-      const q = query(
-        collection(db, COLLECTION_NAME), 
-        where('userId', '==', userId),
-        orderBy('createdAt', 'desc')
-      );
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+      const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
     } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, COLLECTION_NAME);
+      console.error('Error fetching user orders:', error);
       return [];
     }
   },
 
   subscribeToUserOrders(userId: string, callback: (orders: Order[]) => void) {
-    const q = query(
-      collection(db, COLLECTION_NAME), 
-      where('userId', '==', userId),
-      orderBy('createdAt', 'desc')
-    );
-    return onSnapshot(q, (snapshot) => {
-      const orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
-      callback(orders);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, COLLECTION_NAME);
-    });
+    this.getOrdersByUser(userId).then(callback);
+
+    const channel = supabase
+      .channel(`user_orders:${userId}`)
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: TABLE_NAME,
+        filter: `user_id=eq.${userId}`
+      }, () => {
+        this.getOrdersByUser(userId).then(callback);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   },
 
   subscribeToAllOrders(callback: (orders: Order[]) => void) {
-    const q = query(collection(db, COLLECTION_NAME), orderBy('createdAt', 'desc'));
-    return onSnapshot(q, (snapshot) => {
-      const orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
-      callback(orders);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, COLLECTION_NAME);
-    });
+    this.getAllOrders().then(callback);
+
+    const channel = supabase
+      .channel('public:orders')
+      .on('postgres_changes', { event: '*', schema: 'public', table: TABLE_NAME }, () => {
+        this.getAllOrders().then(callback);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   },
 
   async getAllOrders(): Promise<Order[]> {
     try {
-      const q = query(collection(db, COLLECTION_NAME), orderBy('createdAt', 'desc'));
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+      const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
     } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, COLLECTION_NAME);
+      console.error('Error fetching all orders:', error);
       return [];
     }
   },
 
   async updateOrderStatus(orderId: string, status: Order['status']) {
     try {
-      const docRef = doc(db, COLLECTION_NAME, orderId);
-      await updateDoc(docRef, { status });
+      const { error } = await supabase
+        .from(TABLE_NAME)
+        .update({ status })
+        .eq('id', orderId);
+      
+      if (error) throw error;
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `${COLLECTION_NAME}/${orderId}`);
+      console.error('Error updating order status:', error);
     }
   }
 };

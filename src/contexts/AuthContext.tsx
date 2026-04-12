@@ -4,18 +4,8 @@
  */
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { 
-  onAuthStateChanged, 
-  signInWithPopup, 
-  GoogleAuthProvider, 
-  signOut, 
-  User,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  updateProfile
-} from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { User } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
 import { UserProfile } from '../types';
 
 interface AuthContextType {
@@ -38,6 +28,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('uid', userId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
+      if (data) {
+        setProfile(data as UserProfile);
+      } else {
+        // Profile doesn't exist, create it (should have been created on signUp, but for Google login)
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData.user) {
+          const newProfile: UserProfile = {
+            uid: userData.user.id,
+            email: userData.user.email || '',
+            displayName: userData.user.user_metadata.full_name || '',
+            role: userData.user.email === 'laizathamirysns@gmail.com' ? 'admin' : 'customer',
+            favorites: [],
+            createdAt: Date.now()
+          };
+          await supabase.from('profiles').insert([newProfile]);
+          setProfile(newProfile);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+  };
+
   const toggleFavorite = async (productId: string) => {
     if (!user || !profile) {
       alert('Faça login para salvar seus favoritos!');
@@ -50,55 +75,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       : [...profile.favorites, productId];
 
     try {
-      await setDoc(doc(db, 'users', user.uid), {
-        ...profile,
-        favorites: newFavorites
-      });
+      const { error } = await supabase
+        .from('profiles')
+        .update({ favorites: newFavorites })
+        .eq('uid', user.id);
+
+      if (error) throw error;
       setProfile({ ...profile, favorites: newFavorites });
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `users/${user.uid}`);
+      console.error('Error updating favorites:', error);
     }
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser);
-      
-      if (firebaseUser) {
-        try {
-          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-          if (userDoc.exists()) {
-            setProfile(userDoc.data() as UserProfile);
-          } else {
-            // Create profile if it doesn't exist
-            const newProfile: UserProfile = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email || '',
-              displayName: firebaseUser.displayName || '',
-              role: firebaseUser.email === 'laizathamirysns@gmail.com' ? 'admin' : 'customer',
-              favorites: [],
-              createdAt: Date.now()
-            };
-            await setDoc(doc(db, 'users', firebaseUser.uid), newProfile);
-            setProfile(newProfile);
-          }
-        } catch (error) {
-          console.error('Error fetching user profile:', error);
-        }
-      } else {
-        setProfile(null);
+    // Check active sessions and sets the user
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchProfile(session.user.id);
       }
-      
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    // Listen for changes on auth state (logged in, signed out, etc.)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      } else {
+        setProfile(null);
+      }
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const signIn = async () => {
-    const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+      if (error) throw error;
     } catch (error) {
       console.error('Sign in error:', error);
       throw error;
@@ -107,7 +128,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithEmail = async (email: string, pass: string) => {
     try {
-      await signInWithEmailAndPassword(auth, email, pass);
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password: pass,
+      });
+      if (error) throw error;
     } catch (error) {
       console.error('Email sign in error:', error);
       throw error;
@@ -116,20 +141,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, pass: string, name: string, role: 'customer' | 'manufacturer' = 'customer') => {
     try {
-      const { user: newUser } = await createUserWithEmailAndPassword(auth, email, pass);
-      await updateProfile(newUser, { displayName: name });
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password: pass,
+        options: {
+          data: {
+            full_name: name,
+          }
+        }
+      });
       
-      const newProfile: UserProfile = {
-        uid: newUser.uid,
-        email: email,
-        displayName: name,
-        role: email === 'laizathamirysns@gmail.com' ? 'admin' : role,
-        favorites: [],
-        createdAt: Date.now()
-      };
-      
-      await setDoc(doc(db, 'users', newUser.uid), newProfile);
-      setProfile(newProfile);
+      if (error) throw error;
+
+      if (data.user) {
+        const newProfile: UserProfile = {
+          uid: data.user.id,
+          email: email,
+          displayName: name,
+          role: email === 'laizathamirysns@gmail.com' ? 'admin' : role,
+          favorites: [],
+          createdAt: Date.now()
+        };
+        
+        const { error: profileError } = await supabase.from('profiles').insert([newProfile]);
+        if (profileError) throw profileError;
+        setProfile(newProfile);
+      }
     } catch (error) {
       console.error('Sign up error:', error);
       throw error;
@@ -138,7 +175,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      await signOut(auth);
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
     } catch (error) {
       console.error('Logout error:', error);
     }

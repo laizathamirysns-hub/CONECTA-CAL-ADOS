@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { ProductForm } from './ProductForm';
 import { useAuth } from '../contexts/AuthContext';
 import { userService } from '../services/userService';
+import { UserDashboard } from './UserDashboard';
 
 export function AdminPanel() {
   const { user, isAdmin, isManufacturer } = useAuth();
@@ -117,12 +118,13 @@ export function AdminPanel() {
           </div>
         </header>
 
-        <Tabs defaultValue="overview" className="space-y-12">
+        <Tabs defaultValue={isManufacturer ? "overview" : "personal"} className="space-y-12">
           <TabsList className="bg-white/5 border border-white/10 p-1 rounded-none h-14">
-            <TabsTrigger value="overview" className="rounded-none px-8 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-brand-gold data-[state=active]:text-brand-dark">Visão Geral</TabsTrigger>
-            <TabsTrigger value="products" className="rounded-none px-8 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-brand-gold data-[state=active]:text-brand-dark">Produtos</TabsTrigger>
+            {isManufacturer && <TabsTrigger value="overview" className="rounded-none px-8 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-brand-gold data-[state=active]:text-brand-dark">Visão Geral</TabsTrigger>}
+            <TabsTrigger value="personal" className="rounded-none px-8 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-brand-gold data-[state=active]:text-brand-dark">Minha Área</TabsTrigger>
+            {isManufacturer && <TabsTrigger value="products" className="rounded-none px-8 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-brand-gold data-[state=active]:text-brand-dark">Produtos</TabsTrigger>}
             <TabsTrigger value="orders" className="rounded-none px-8 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-brand-gold data-[state=active]:text-brand-dark">Pedidos</TabsTrigger>
-            <TabsTrigger value="jobs" className="rounded-none px-8 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-brand-gold data-[state=active]:text-brand-dark">Vagas & Candidatos</TabsTrigger>
+            {isManufacturer && <TabsTrigger value="jobs" className="rounded-none px-8 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-brand-gold data-[state=active]:text-brand-dark">Vagas & Candidatos</TabsTrigger>}
             {isAdmin && <TabsTrigger value="users" className="rounded-none px-8 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-brand-gold data-[state=active]:text-brand-dark">Usuários</TabsTrigger>}
           </TabsList>
 
@@ -299,6 +301,10 @@ export function AdminPanel() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="personal">
+            <UserDashboard />
           </TabsContent>
 
           <TabsContent value="jobs">

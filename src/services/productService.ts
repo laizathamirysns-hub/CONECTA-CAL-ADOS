@@ -3,85 +3,113 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { 
-  collection, 
-  getDocs, 
-  getDoc, 
-  doc, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where, 
-  orderBy,
-  onSnapshot
-} from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import { Product } from '../types';
 
-const COLLECTION_NAME = 'products';
+const TABLE_NAME = 'products';
 
 export const productService = {
   async getProducts(): Promise<Product[]> {
     try {
-      const q = query(collection(db, COLLECTION_NAME), orderBy('createdAt', 'desc'));
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+      const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
     } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, COLLECTION_NAME);
+      console.error('Error fetching products:', error);
       return [];
     }
   },
 
   subscribeToProducts(callback: (products: Product[]) => void) {
-    const q = query(collection(db, COLLECTION_NAME), orderBy('createdAt', 'desc'));
-    return onSnapshot(q, (snapshot) => {
-      const products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-      callback(products);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, COLLECTION_NAME);
-    });
+    // Initial fetch
+    this.getProducts().then(callback);
+
+    // Real-time subscription
+    const channel = supabase
+      .channel('public:products')
+      .on('postgres_changes', { event: '*', schema: 'public', table: TABLE_NAME }, () => {
+        this.getProducts().then(callback);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  },
+
+  async getManufacturerProducts(manufacturerId: string): Promise<Product[]> {
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .select('*')
+      .eq('manufacturer_id', manufacturerId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
   },
 
   subscribeToManufacturerProducts(manufacturerId: string, callback: (products: Product[]) => void) {
-    const q = query(
-      collection(db, COLLECTION_NAME), 
-      where('manufacturerId', '==', manufacturerId),
-      orderBy('createdAt', 'desc')
-    );
-    return onSnapshot(q, (snapshot) => {
-      const products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-      callback(products);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, COLLECTION_NAME);
-    });
+    this.getManufacturerProducts(manufacturerId).then(callback);
+
+    const channel = supabase
+      .channel(`manufacturer:${manufacturerId}`)
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: TABLE_NAME,
+        filter: `manufacturer_id=eq.${manufacturerId}`
+      }, () => {
+        this.getManufacturerProducts(manufacturerId).then(callback);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   },
 
   async addProduct(product: Omit<Product, 'id'>): Promise<string> {
     try {
-      const docRef = await addDoc(collection(db, COLLECTION_NAME), product);
-      return docRef.id;
+      const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .insert([product])
+        .select();
+      
+      if (error) throw error;
+      return data?.[0]?.id || '';
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, COLLECTION_NAME);
+      console.error('Error adding product:', error);
       return '';
     }
   },
 
   async updateProduct(id: string, product: Partial<Product>) {
     try {
-      const docRef = doc(db, COLLECTION_NAME, id);
-      await updateDoc(docRef, product);
+      const { error } = await supabase
+        .from(TABLE_NAME)
+        .update(product)
+        .eq('id', id);
+      
+      if (error) throw error;
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `${COLLECTION_NAME}/${id}`);
+      console.error('Error updating product:', error);
     }
   },
 
   async deleteProduct(id: string) {
     try {
-      const docRef = doc(db, COLLECTION_NAME, id);
-      await deleteDoc(docRef);
+      const { error } = await supabase
+        .from(TABLE_NAME)
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, `${COLLECTION_NAME}/${id}`);
+      console.error('Error deleting product:', error);
     }
   }
 };

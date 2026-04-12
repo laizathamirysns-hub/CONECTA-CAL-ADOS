@@ -3,80 +3,85 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { 
-  collection, 
-  getDocs, 
-  addDoc, 
-  query, 
-  where,
-  orderBy,
-  onSnapshot
-} from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import { Job, JobApplication } from '../types';
 
-const COLLECTION_NAME = 'jobs';
-const APPLICATIONS_COLLECTION = 'job_applications';
+const TABLE_NAME = 'jobs';
+const APPLICATIONS_TABLE = 'job_applications';
 
 export const jobService = {
   async getJobs(): Promise<Job[]> {
     try {
-      const q = query(collection(db, COLLECTION_NAME), orderBy('createdAt', 'desc'));
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job));
+      const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
     } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, COLLECTION_NAME);
+      console.error('Error fetching jobs:', error);
       return [];
     }
   },
 
   subscribeToJobs(callback: (jobs: Job[]) => void) {
-    const q = query(collection(db, COLLECTION_NAME), orderBy('createdAt', 'desc'));
-    return onSnapshot(q, (snapshot) => {
-      const jobs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job));
-      callback(jobs);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, COLLECTION_NAME);
-    });
+    this.getJobs().then(callback);
+
+    const channel = supabase
+      .channel('public:jobs')
+      .on('postgres_changes', { event: '*', schema: 'public', table: TABLE_NAME }, () => {
+        this.getJobs().then(callback);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   },
 
   async addJob(job: Omit<Job, 'id'>): Promise<string> {
     try {
-      const docRef = await addDoc(collection(db, COLLECTION_NAME), {
-        ...job,
-        createdAt: Date.now()
-      });
-      return docRef.id;
+      const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .insert([{ ...job, created_at: Date.now() }])
+        .select();
+      
+      if (error) throw error;
+      return data?.[0]?.id || '';
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, COLLECTION_NAME);
+      console.error('Error adding job:', error);
       return '';
     }
   },
 
   async applyForJob(application: Omit<JobApplication, 'id'>): Promise<string> {
     try {
-      const docRef = await addDoc(collection(db, APPLICATIONS_COLLECTION), {
-        ...application,
-        createdAt: Date.now()
-      });
-      return docRef.id;
+      const { data, error } = await supabase
+        .from(APPLICATIONS_TABLE)
+        .insert([{ ...application, created_at: Date.now() }])
+        .select();
+      
+      if (error) throw error;
+      return data?.[0]?.id || '';
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, APPLICATIONS_COLLECTION);
+      console.error('Error applying for job:', error);
       return '';
     }
   },
 
   async getApplicationsByJob(jobId: string): Promise<JobApplication[]> {
     try {
-      const q = query(
-        collection(db, APPLICATIONS_COLLECTION), 
-        where('jobId', '==', jobId),
-        orderBy('createdAt', 'desc')
-      );
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as JobApplication));
+      const { data, error } = await supabase
+        .from(APPLICATIONS_TABLE)
+        .select('*')
+        .eq('job_id', jobId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
     } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, APPLICATIONS_COLLECTION);
+      console.error('Error fetching job applications:', error);
       return [];
     }
   }

@@ -94,19 +94,10 @@ export default function App() {
     });
   }, [products, selectedCategory, selectedColor, selectedSize, searchTerm, showWishlist, profile]);
 
-  if (isAdminView && (isAdmin || isManufacturer)) {
+  if (isAdminView && profile) {
     return (
       <div className="min-h-screen bg-brand-dark">
         <div className="fixed bottom-8 right-8 z-50 flex flex-col gap-4">
-          {isAdmin && products.length === 0 && (
-            <Button 
-              onClick={seedDatabase}
-              className="h-14 w-14 rounded-full bg-green-600 text-white shadow-2xl hover:scale-110 transition-transform"
-              title="Popular Banco de Dados"
-            >
-              <Database className="h-6 w-6" />
-            </Button>
-          )}
           <Button 
             onClick={() => {
               setIsAdminView(false);
