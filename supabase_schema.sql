@@ -134,7 +134,8 @@ BEGIN
       ELSE COALESCE(NEW.raw_user_meta_data->>'role', 'customer')
     END,
     extract(epoch from now())::bigint * 1000
-  );
+  )
+  ON CONFLICT (uid) DO NOTHING;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -175,6 +176,7 @@ CREATE POLICY "Anyone can upload resumes" ON storage.objects FOR INSERT WITH CHE
   bucket_id = 'resumes'
 );
 CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = uid);
+CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = uid);
 CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = uid);
 
 -- Products: Everyone can read, only manufacturers/admins can write

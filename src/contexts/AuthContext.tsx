@@ -53,26 +53,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           createdAt: data.created_at
         });
       } else {
-        // Profile doesn't exist, create it (should have been created on signUp, but for Google login)
+        // Profile doesn't exist, create it (fallback if trigger hasn't finished)
         const { data: userData } = await supabase.auth.getUser();
         if (userData.user) {
           const newProfileData = {
             uid: userData.user.id,
             email: userData.user.email || '',
-            display_name: userData.user.user_metadata.full_name || '',
-            role: userData.user.email === 'laizathamirysns@gmail.com' ? 'admin' : 'customer',
+            display_name: userData.user.user_metadata.full_name || userData.user.email || '',
+            role: userData.user.email === 'laizathamirysns@gmail.com' ? 'admin' : (userData.user.user_metadata.role || 'customer'),
             favorites: [],
             created_at: Date.now()
           };
-          await supabase.from('profiles').insert([newProfileData]);
-          setProfile({
-            uid: newProfileData.uid,
-            email: newProfileData.email,
-            displayName: newProfileData.display_name,
-            role: newProfileData.role as any,
-            favorites: newProfileData.favorites,
-            createdAt: newProfileData.created_at
-          });
+          
+          // Use upsert or ignore error to prevent "duplicate key" if trigger already ran
+          const { error: insertError } = await supabase.from('profiles').upsert([newProfileData], { onConflict: 'uid' });
+          
+          if (!insertError) {
+            setProfile({
+              uid: newProfileData.uid,
+              email: newProfileData.email,
+              displayName: newProfileData.display_name,
+              role: newProfileData.role as any,
+              favorites: newProfileData.favorites,
+              createdAt: newProfileData.created_at
+            });
+          } else {
+            // If upsert failed, try fetching again
+            const { data: retryData } = await supabase.from('profiles').select('*').eq('uid', userId).single();
+            if (retryData) {
+              setProfile({
+                uid: retryData.uid,
+                email: retryData.email,
+                displayName: retryData.display_name,
+                role: retryData.role,
+                favorites: retryData.favorites || [],
+                createdAt: retryData.created_at
+              });
+            }
+          }
         }
       }
     } catch (error) {
@@ -133,7 +151,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin
+          redirectTo: window.location.origin,
+          queryParams: {
+            prompt: 'select_account',
+            access_type: 'offline',
+          }
         }
       });
       if (error) throw error;
@@ -164,34 +186,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         options: {
           data: {
             full_name: name,
+            role: role
           }
         }
       });
       
       if (error) throw error;
 
-      if (data.user) {
-        const newProfileData = {
-          uid: data.user.id,
-          email: email,
-          display_name: name,
-          role: email === 'laizathamirysns@gmail.com' ? 'admin' : role,
-          favorites: [],
-          created_at: Date.now()
-        };
-        
-        const { error: profileError } = await supabase.from('profiles').insert([newProfileData]);
-        if (profileError) throw profileError;
-        
-        setProfile({
-          uid: newProfileData.uid,
-          email: newProfileData.email,
-          displayName: newProfileData.display_name,
-          role: newProfileData.role as any,
-          favorites: newProfileData.favorites,
-          createdAt: newProfileData.created_at
-        });
-      }
+      // Profile is created by the database trigger 'handle_new_user'
+      // We'll wait for the session to update and fetchProfile will be called by the effect
     } catch (error) {
       console.error('Sign up error:', error);
       throw error;
