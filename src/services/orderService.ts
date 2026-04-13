@@ -11,9 +11,22 @@ const TABLE_NAME = 'orders';
 export const orderService = {
   async createOrder(order: Omit<Order, 'id'>): Promise<string> {
     try {
+      const dbOrder = {
+        user_id: order.userId,
+        items: order.items,
+        subtotal: order.subtotal,
+        shipping_cost: order.shippingCost,
+        total: order.total,
+        status: order.status,
+        type: order.type,
+        shipping_method: order.shippingMethod,
+        shipping_details: order.shippingDetails,
+        customer_info: order.customerInfo,
+        created_at: order.createdAt || Date.now()
+      };
       const { data, error } = await supabase
         .from(TABLE_NAME)
-        .insert([{ ...order, created_at: Date.now() }])
+        .insert([dbOrder])
         .select();
       
       if (error) throw error;
@@ -33,7 +46,20 @@ export const orderService = {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data || [];
+      return (data || []).map(item => ({
+        id: item.id,
+        userId: item.user_id,
+        items: item.items,
+        subtotal: Number(item.subtotal),
+        shippingCost: Number(item.shipping_cost),
+        total: Number(item.total),
+        status: item.status,
+        type: item.type,
+        shippingMethod: item.shipping_method,
+        shippingDetails: item.shipping_details,
+        customerInfo: item.customer_info,
+        createdAt: item.created_at
+      }));
     } catch (error) {
       console.error('Error fetching user orders:', error);
       return [];
@@ -83,7 +109,20 @@ export const orderService = {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data || [];
+      return (data || []).map(item => ({
+        id: item.id,
+        userId: item.user_id,
+        items: item.items,
+        subtotal: Number(item.subtotal),
+        shippingCost: Number(item.shipping_cost),
+        total: Number(item.total),
+        status: item.status,
+        type: item.type,
+        shippingMethod: item.shipping_method,
+        shippingDetails: item.shipping_details,
+        customerInfo: item.customer_info,
+        createdAt: item.created_at
+      }));
     } catch (error) {
       console.error('Error fetching all orders:', error);
       return [];

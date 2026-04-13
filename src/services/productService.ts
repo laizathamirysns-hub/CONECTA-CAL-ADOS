@@ -17,7 +17,21 @@ export const productService = {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data || [];
+      return (data || []).map(item => ({
+        id: item.id,
+        manufacturerId: item.manufacturer_id,
+        name: item.name,
+        description: item.description,
+        category: item.category,
+        retailPrice: Number(item.retail_price),
+        wholesalePrice: Number(item.wholesale_price),
+        wholesaleMinQuantity: item.wholesale_min_quantity,
+        images: item.images,
+        colors: item.colors,
+        sizes: item.sizes,
+        featured: item.featured,
+        createdAt: item.created_at
+      }));
     } catch (error) {
       console.error('Error fetching products:', error);
       return [];
@@ -49,7 +63,21 @@ export const productService = {
       .order('created_at', { ascending: false });
     
     if (error) throw error;
-    return data || [];
+    return (data || []).map(item => ({
+      id: item.id,
+      manufacturerId: item.manufacturer_id,
+      name: item.name,
+      description: item.description,
+      category: item.category,
+      retailPrice: Number(item.retail_price),
+      wholesalePrice: Number(item.wholesale_price),
+      wholesaleMinQuantity: item.wholesale_min_quantity,
+      images: item.images,
+      colors: item.colors,
+      sizes: item.sizes,
+      featured: item.featured,
+      createdAt: item.created_at
+    }));
   },
 
   subscribeToManufacturerProducts(manufacturerId: string, callback: (products: Product[]) => void) {
@@ -97,9 +125,24 @@ export const productService = {
 
   async addProduct(product: Omit<Product, 'id'>): Promise<string> {
     try {
+      const dbProduct = {
+        manufacturer_id: product.manufacturerId,
+        name: product.name,
+        description: product.description,
+        category: product.category,
+        retail_price: product.retailPrice,
+        wholesale_price: product.wholesalePrice,
+        wholesale_min_quantity: product.wholesaleMinQuantity,
+        images: product.images,
+        colors: product.colors,
+        sizes: product.sizes,
+        featured: product.featured,
+        created_at: product.createdAt || Date.now()
+      };
+
       const { data, error } = await supabase
         .from(TABLE_NAME)
-        .insert([product])
+        .insert([dbProduct])
         .select();
       
       if (error) throw error;
@@ -112,9 +155,23 @@ export const productService = {
 
   async updateProduct(id: string, product: Partial<Product>) {
     try {
+      const dbProduct: any = {};
+      if (product.manufacturerId) dbProduct.manufacturer_id = product.manufacturerId;
+      if (product.name) dbProduct.name = product.name;
+      if (product.description) dbProduct.description = product.description;
+      if (product.category) dbProduct.category = product.category;
+      if (product.retailPrice !== undefined) dbProduct.retail_price = product.retailPrice;
+      if (product.wholesalePrice !== undefined) dbProduct.wholesale_price = product.wholesalePrice;
+      if (product.wholesaleMinQuantity !== undefined) dbProduct.wholesale_min_quantity = product.wholesaleMinQuantity;
+      if (product.images) dbProduct.images = product.images;
+      if (product.colors) dbProduct.colors = product.colors;
+      if (product.sizes) dbProduct.sizes = product.sizes;
+      if (product.featured !== undefined) dbProduct.featured = product.featured;
+      if (product.createdAt) dbProduct.created_at = product.createdAt;
+
       const { error } = await supabase
         .from(TABLE_NAME)
-        .update(product)
+        .update(dbProduct)
         .eq('id', id);
       
       if (error) throw error;

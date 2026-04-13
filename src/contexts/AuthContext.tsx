@@ -19,6 +19,8 @@ interface AuthContextType {
   isAdmin: boolean;
   isManufacturer: boolean;
   toggleFavorite: (productId: string) => Promise<void>;
+  isLoginModalOpen: boolean;
+  setIsLoginModalOpen: (open: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,6 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -41,21 +44,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data) {
-        setProfile(data as UserProfile);
+        setProfile({
+          uid: data.uid,
+          email: data.email,
+          displayName: data.display_name,
+          role: data.role,
+          favorites: data.favorites || [],
+          createdAt: data.created_at
+        });
       } else {
         // Profile doesn't exist, create it (should have been created on signUp, but for Google login)
         const { data: userData } = await supabase.auth.getUser();
         if (userData.user) {
-          const newProfile: UserProfile = {
+          const newProfileData = {
             uid: userData.user.id,
             email: userData.user.email || '',
-            displayName: userData.user.user_metadata.full_name || '',
+            display_name: userData.user.user_metadata.full_name || '',
             role: userData.user.email === 'laizathamirysns@gmail.com' ? 'admin' : 'customer',
             favorites: [],
-            createdAt: Date.now()
+            created_at: Date.now()
           };
-          await supabase.from('profiles').insert([newProfile]);
-          setProfile(newProfile);
+          await supabase.from('profiles').insert([newProfileData]);
+          setProfile({
+            uid: newProfileData.uid,
+            email: newProfileData.email,
+            displayName: newProfileData.display_name,
+            role: newProfileData.role as any,
+            favorites: newProfileData.favorites,
+            createdAt: newProfileData.created_at
+          });
         }
       }
     } catch (error) {
@@ -154,18 +171,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
 
       if (data.user) {
-        const newProfile: UserProfile = {
+        const newProfileData = {
           uid: data.user.id,
           email: email,
-          displayName: name,
+          display_name: name,
           role: email === 'laizathamirysns@gmail.com' ? 'admin' : role,
           favorites: [],
-          createdAt: Date.now()
+          created_at: Date.now()
         };
         
-        const { error: profileError } = await supabase.from('profiles').insert([newProfile]);
+        const { error: profileError } = await supabase.from('profiles').insert([newProfileData]);
         if (profileError) throw profileError;
-        setProfile(newProfile);
+        
+        setProfile({
+          uid: newProfileData.uid,
+          email: newProfileData.email,
+          displayName: newProfileData.display_name,
+          role: newProfileData.role as any,
+          favorites: newProfileData.favorites,
+          createdAt: newProfileData.created_at
+        });
       }
     } catch (error) {
       console.error('Sign up error:', error);
@@ -196,7 +221,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logout, 
       isAdmin, 
       isManufacturer,
-      toggleFavorite 
+      toggleFavorite,
+      isLoginModalOpen,
+      setIsLoginModalOpen
     }}>
       {children}
     </AuthContext.Provider>

@@ -255,12 +255,12 @@ export default function App() {
           </div>
         </section>
 
-        <TestimonialsSection />
+        <TestimonialsSection id="testimonials" />
 
-        {showJobs && <JobBoard />}
+        {showJobs && <div id="jobs"><JobBoard /></div>}
 
         {/* Wholesale CTA */}
-        <section className="bg-brand-graphite py-32 overflow-hidden relative">
+        <section id="wholesale" className="bg-brand-graphite py-32 overflow-hidden relative">
           <div className="absolute top-0 right-0 w-1/2 h-full bg-brand-gold/5 skew-x-12 translate-x-1/4"></div>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <div className="max-w-2xl space-y-10">
@@ -275,12 +275,16 @@ export default function App() {
                 Condições exclusivas para lojistas e revendedores. Preços diferenciados e logística otimizada para todo o Brasil.
               </p>
               <div className="flex flex-wrap gap-6">
-                <Button size="lg" className="bg-brand-gold text-brand-dark hover:bg-brand-gold/90 px-10 py-7 text-sm font-bold tracking-widest uppercase rounded-none">
-                  Ver Tabela de Preços
-                </Button>
-                <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/5 px-10 py-7 text-sm font-bold tracking-widest uppercase rounded-none">
-                  Falar com Consultor
-                </Button>
+                <a href="#catalog">
+                  <Button size="lg" className="bg-brand-gold text-brand-dark hover:bg-brand-gold/90 px-10 py-7 text-sm font-bold tracking-widest uppercase rounded-none">
+                    Ver Catálogo e Preços
+                  </Button>
+                </a>
+                <a href="#contact">
+                  <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/5 px-10 py-7 text-sm font-bold tracking-widest uppercase rounded-none">
+                    Falar com Consultor
+                  </Button>
+                </a>
               </div>
             </div>
           </div>

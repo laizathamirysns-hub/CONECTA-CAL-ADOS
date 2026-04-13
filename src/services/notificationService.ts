@@ -11,9 +11,18 @@ const TABLE_NAME = 'notifications';
 export const notificationService = {
   async sendNotification(notification: Omit<Notification, 'id'>): Promise<string> {
     try {
+      const dbNotification = {
+        user_id: notification.userId,
+        title: notification.title,
+        message: notification.message,
+        type: notification.type,
+        read: notification.read,
+        link: notification.link,
+        created_at: notification.createdAt || Date.now()
+      };
       const { data, error } = await supabase
         .from(TABLE_NAME)
-        .insert([{ ...notification, created_at: Date.now() }])
+        .insert([dbNotification])
         .select();
       
       if (error) throw error;
@@ -32,7 +41,16 @@ export const notificationService = {
       .order('created_at', { ascending: false });
     
     if (error) throw error;
-    return data || [];
+    return (data || []).map(item => ({
+      id: item.id,
+      userId: item.user_id,
+      title: item.title,
+      message: item.message,
+      type: item.type,
+      read: item.read,
+      link: item.link,
+      createdAt: item.created_at
+    }));
   },
 
   subscribeToUserNotifications(userId: string, callback: (notifications: Notification[]) => void) {

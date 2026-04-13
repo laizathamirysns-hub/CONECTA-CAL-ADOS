@@ -8,7 +8,7 @@ import { Logo } from './Logo';
 
 export function Footer() {
   return (
-    <footer className="bg-brand-dark text-white/40 py-24 border-t border-white/5">
+    <footer id="contact" className="bg-brand-dark text-white/40 py-24 border-t border-white/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-16">
           {/* Brand */}
@@ -28,10 +28,10 @@ export function Footer() {
           <div>
             <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-white mb-8">Navegação</h3>
             <ul className="space-y-4 text-xs font-medium tracking-widest uppercase">
-              <li><a href="#" className="hover:text-brand-gold transition-colors">Catálogo</a></li>
-              <li><a href="#" className="hover:text-brand-gold transition-colors">Atacado</a></li>
-              <li><a href="#" className="hover:text-brand-gold transition-colors">Novidades</a></li>
-              <li><a href="#" className="hover:text-brand-gold transition-colors">Promoções</a></li>
+              <li><a href="#catalog" className="hover:text-brand-gold transition-colors">Catálogo</a></li>
+              <li><a href="#wholesale" className="hover:text-brand-gold transition-colors">Atacado</a></li>
+              <li><a href="#testimonials" className="hover:text-brand-gold transition-colors">Sobre</a></li>
+              <li><a href="#jobs" className="hover:text-brand-gold transition-colors">Vagas</a></li>
             </ul>
           </div>
 

@@ -27,9 +27,9 @@ const TESTIMONIALS = [
   }
 ];
 
-export function TestimonialsSection() {
+export function TestimonialsSection({ id }: { id?: string }) {
   return (
-    <section className="bg-[#0A0A0A] py-32 border-t border-white/5">
+    <section id={id} className="bg-[#0A0A0A] py-32 border-t border-white/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center space-y-4 mb-20">
           <motion.span 

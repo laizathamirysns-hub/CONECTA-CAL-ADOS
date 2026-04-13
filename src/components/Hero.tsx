@@ -6,8 +6,11 @@
 import { Button } from '@/components/ui/button';
 import { motion } from 'motion/react';
 import { ArrowRight, CreditCard, Banknote } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export function Hero() {
+  const { setIsLoginModalOpen } = useAuth();
+
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden bg-[#0A0A0A]">
       {/* Background Cinematic Elements */}
@@ -96,10 +99,17 @@ export function Hero() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <Button size="lg" className="bg-brand-gold text-brand-dark hover:bg-brand-gold/90 px-12 py-8 text-sm font-bold tracking-widest uppercase rounded-none transition-all duration-500 hover:tracking-[0.3em]">
-              Explorar Catálogo
-            </Button>
-            <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/5 px-12 py-8 text-sm font-bold tracking-widest uppercase rounded-none transition-all duration-500">
+            <a href="#catalog">
+              <Button size="lg" className="bg-brand-gold text-brand-dark hover:bg-brand-gold/90 px-12 py-8 text-sm font-bold tracking-widest uppercase rounded-none transition-all duration-500 hover:tracking-[0.3em] w-full sm:w-auto">
+                Explorar Catálogo
+              </Button>
+            </a>
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="border-white/20 text-white hover:bg-white/5 px-12 py-8 text-sm font-bold tracking-widest uppercase rounded-none transition-all duration-500"
+              onClick={() => setIsLoginModalOpen(true)}
+            >
               Seja um Parceiro
             </Button>
           </div>

@@ -45,9 +45,8 @@ export function Navbar({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const { itemCount } = useCart();
-  const { user, profile, signIn, logout } = useAuth();
+  const { user, profile, signIn, logout, isLoginModalOpen, setIsLoginModalOpen } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -120,7 +119,8 @@ export function Navbar({
               </button>
             </div>
 
-            <a href="#about" className="text-[11px] font-semibold text-white/60 hover:text-brand-gold transition-colors tracking-[0.2em] uppercase">Sobre</a>
+            <a href="#wholesale" className="text-[11px] font-semibold text-white/60 hover:text-brand-gold transition-colors tracking-[0.2em] uppercase">Atacado</a>
+            <a href="#testimonials" className="text-[11px] font-semibold text-white/60 hover:text-brand-gold transition-colors tracking-[0.2em] uppercase">Sobre</a>
             <a href="#contact" className="text-[11px] font-semibold text-white/60 hover:text-brand-gold transition-colors tracking-[0.2em] uppercase">Contato</a>
           </div>
 
@@ -284,7 +284,7 @@ export function Navbar({
               </div>
 
               <div className="flex flex-col space-y-4">
-                <a href="#" className="text-sm font-medium text-white/60 hover:text-brand-gold tracking-widest uppercase">Catálogo</a>
+                <a href="#catalog" className="text-sm font-medium text-white/60 hover:text-brand-gold tracking-widest uppercase">Catálogo</a>
                 <button 
                   onClick={() => {
                     setShowJobs(!showJobs);
@@ -297,9 +297,9 @@ export function Navbar({
                 >
                   Vagas em Nova Serrana
                 </button>
-                <a href="#" className="text-sm font-medium text-white/60 hover:text-brand-gold tracking-widest uppercase">Atacado</a>
-                <a href="#" className="text-sm font-medium text-white/60 hover:text-brand-gold tracking-widest uppercase">Sobre</a>
-                <a href="#" className="text-sm font-medium text-white/60 hover:text-brand-gold tracking-widest uppercase">Contato</a>
+                <a href="#wholesale" className="text-sm font-medium text-white/60 hover:text-brand-gold tracking-widest uppercase">Atacado</a>
+                <a href="#testimonials" className="text-sm font-medium text-white/60 hover:text-brand-gold tracking-widest uppercase">Sobre</a>
+                <a href="#contact" className="text-sm font-medium text-white/60 hover:text-brand-gold tracking-widest uppercase">Contato</a>
               </div>
               <div className="flex space-x-4 pt-6 border-t border-white/10">
                 {!user ? (

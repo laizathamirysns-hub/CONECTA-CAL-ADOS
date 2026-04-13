@@ -18,7 +18,17 @@ export const jobService = {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data || [];
+      return (data || []).map(item => ({
+        id: item.id,
+        companyName: item.company_name,
+        role: item.role,
+        description: item.description,
+        requirements: item.requirements,
+        contact: item.contact,
+        type: item.type,
+        area: item.area,
+        createdAt: item.created_at
+      }));
     } catch (error) {
       console.error('Error fetching jobs:', error);
       return [];
@@ -42,9 +52,19 @@ export const jobService = {
 
   async addJob(job: Omit<Job, 'id'>): Promise<string> {
     try {
+      const dbJob = {
+        company_name: job.companyName,
+        role: job.role,
+        description: job.description,
+        requirements: job.requirements,
+        contact: job.contact,
+        type: job.type,
+        area: job.area,
+        created_at: job.createdAt || Date.now()
+      };
       const { data, error } = await supabase
         .from(TABLE_NAME)
-        .insert([{ ...job, created_at: Date.now() }])
+        .insert([dbJob])
         .select();
       
       if (error) throw error;
@@ -80,9 +100,19 @@ export const jobService = {
 
   async applyForJob(application: Omit<JobApplication, 'id'>): Promise<string> {
     try {
+      const dbApp = {
+        job_id: application.jobId,
+        candidate_name: application.candidateName,
+        candidate_email: application.candidateEmail,
+        candidate_phone: application.candidatePhone,
+        experience: application.experience,
+        resume_url: application.resumeUrl,
+        status: application.status,
+        created_at: application.createdAt || Date.now()
+      };
       const { data, error } = await supabase
         .from(APPLICATIONS_TABLE)
-        .insert([{ ...application, created_at: Date.now() }])
+        .insert([dbApp])
         .select();
       
       if (error) throw error;
@@ -102,7 +132,17 @@ export const jobService = {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data || [];
+      return (data || []).map(item => ({
+        id: item.id,
+        jobId: item.job_id,
+        candidateName: item.candidate_name,
+        candidateEmail: item.candidate_email,
+        candidatePhone: item.candidate_phone,
+        experience: item.experience,
+        resumeUrl: item.resume_url,
+        status: item.status,
+        createdAt: item.created_at
+      }));
     } catch (error) {
       console.error('Error fetching job applications:', error);
       return [];
