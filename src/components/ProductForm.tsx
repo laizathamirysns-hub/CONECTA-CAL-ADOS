@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 import { productService } from '@/src/services/productService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Plus, Trash2, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Plus, Trash2, Image as ImageIcon, Upload } from 'lucide-react';
 import { Product } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -20,6 +20,7 @@ interface ProductFormProps {
 export function ProductForm({ onSuccess, onCancel, initialData }: ProductFormProps) {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
     description: initialData?.description || '',
@@ -40,6 +41,20 @@ export function ProductForm({ onSuccess, onCancel, initialData }: ProductFormPro
     featured: initialData?.featured || false,
     manufacturerId: initialData?.manufacturerId || user?.uid || ''
   });
+
+  const handleImageUpload = async (index: number, file: File) => {
+    setUploadingImage(index);
+    try {
+      const url = await productService.uploadImage(file);
+      if (url) {
+        updateImage(index, url);
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+    } finally {
+      setUploadingImage(null);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,20 +169,46 @@ export function ProductForm({ onSuccess, onCancel, initialData }: ProductFormPro
             </div>
             <div className="space-y-3">
               {formData.images.map((url, index) => (
-                <div key={index} className="flex gap-2">
-                  <div className="relative flex-grow">
-                    <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20" />
-                    <Input 
-                      value={url}
-                      onChange={e => updateImage(index, e.target.value)}
-                      placeholder="https://exemplo.com/imagem.jpg"
-                      className="pl-10 bg-white/5 border-white/10 focus:border-brand-gold/50 rounded-none"
-                    />
+                <div key={index} className="space-y-2">
+                  <div className="flex gap-2">
+                    <div className="relative flex-grow">
+                      <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20" />
+                      <Input 
+                        value={url}
+                        onChange={e => updateImage(index, e.target.value)}
+                        placeholder="URL da imagem ou use o botão ao lado"
+                        className="pl-10 bg-white/5 border-white/10 focus:border-brand-gold/50 rounded-none"
+                      />
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="file"
+                        id={`image-upload-${index}`}
+                        className="hidden"
+                        accept="image/*"
+                        onChange={e => e.target.files?.[0] && handleImageUpload(index, e.target.files[0])}
+                      />
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="icon" 
+                        disabled={uploadingImage === index}
+                        onClick={() => document.getElementById(`image-upload-${index}`)?.click()}
+                        className="text-brand-gold hover:bg-white/5"
+                      >
+                        {uploadingImage === index ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                    {formData.images.length > 1 && (
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeImage(index)} className="text-white/20 hover:text-red-500">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
-                  {formData.images.length > 1 && (
-                    <Button type="button" variant="ghost" size="icon" onClick={() => removeImage(index)} className="text-white/20 hover:text-red-500">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                  {url && (
+                    <div className="h-20 w-20 border border-white/10 overflow-hidden">
+                      <img src={url} alt="Preview" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+                    </div>
                   )}
                 </div>
               ))}

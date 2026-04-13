@@ -55,6 +55,29 @@ export const jobService = {
     }
   },
 
+  async uploadResume(file: File): Promise<string> {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `resumes/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('resumes')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('resumes')
+        .getPublicUrl(filePath);
+
+      return data.publicUrl;
+    } catch (error) {
+      console.error('Error uploading resume:', error);
+      return '';
+    }
+  },
+
   async applyForJob(application: Omit<JobApplication, 'id'>): Promise<string> {
     try {
       const { data, error } = await supabase

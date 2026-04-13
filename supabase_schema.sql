@@ -119,6 +119,30 @@ CREATE TABLE checklist_items (
   completed BOOLEAN DEFAULT false
 );
 
+-- 11. Trigger for Profile Creation
+-- This function creates a profile entry automatically when a new user signs up
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (uid, email, display_name, role, created_at)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email),
+    CASE 
+      WHEN NEW.email = 'laizathamirysns@gmail.com' THEN 'admin'
+      ELSE COALESCE(NEW.raw_user_meta_data->>'role', 'customer')
+    END,
+    extract(epoch from now())::bigint * 1000
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
 -- Enable Row Level Security (RLS)
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
@@ -131,8 +155,25 @@ ALTER TABLE user_notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_checklists ENABLE ROW LEVEL SECURITY;
 ALTER TABLE checklist_items ENABLE ROW LEVEL SECURITY;
 
--- Policies
--- Profiles: Users can read and update their own profile
+-- 12. Storage Policies (Run these in the SQL Editor or via Dashboard)
+-- Note: Supabase Storage buckets must be created manually in the dashboard first.
+-- Buckets needed: 'products', 'resumes'
+
+-- Allow public access to product images
+CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id = 'products');
+CREATE POLICY "Manufacturers can upload product images" ON storage.objects FOR INSERT WITH CHECK (
+  bucket_id = 'products' AND auth.role() = 'authenticated'
+);
+
+-- Resumes: Only admins and the owner can view
+CREATE POLICY "Admins can view resumes" ON storage.objects FOR SELECT USING (
+  bucket_id = 'resumes' AND (
+    EXISTS (SELECT 1 FROM profiles WHERE uid = auth.uid() AND role = 'admin')
+  )
+);
+CREATE POLICY "Anyone can upload resumes" ON storage.objects FOR INSERT WITH CHECK (
+  bucket_id = 'resumes'
+);
 CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = uid);
 CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = uid);
 

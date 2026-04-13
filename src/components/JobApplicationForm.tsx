@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 import { jobService } from '@/src/services/jobService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { CheckCircle2, Loader2, User, Phone, Mail, FileText } from 'lucide-react';
+import { CheckCircle2, Loader2, User, Phone, Mail, FileText, Upload } from 'lucide-react';
 import { Job } from '../types';
 
 interface JobApplicationFormProps {
@@ -17,6 +17,7 @@ interface JobApplicationFormProps {
 
 export function JobApplicationForm({ job, onSuccess }: JobApplicationFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [formData, setFormData] = useState({
     candidateName: '',
     candidateEmail: '',
@@ -29,9 +30,15 @@ export function JobApplicationForm({ job, onSuccess }: JobApplicationFormProps) 
     setIsSubmitting(true);
 
     try {
+      let resumeUrl = '';
+      if (resumeFile) {
+        resumeUrl = await jobService.uploadResume(resumeFile);
+      }
+
       await jobService.applyForJob({
         jobId: job.id,
         ...formData,
+        resumeUrl,
         status: 'pending',
         createdAt: Date.now()
       });
@@ -90,6 +97,19 @@ export function JobApplicationForm({ job, onSuccess }: JobApplicationFormProps) 
                   className="pl-10 bg-white/5 border-white/10 focus:border-brand-gold/50 rounded-none"
                 />
               </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">Currículo (PDF ou DOC)</label>
+            <div className="relative">
+              <Upload className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20" />
+              <Input 
+                type="file"
+                accept=".pdf,.doc,.docx"
+                onChange={e => setResumeFile(e.target.files?.[0] || null)}
+                className="pl-10 bg-white/5 border-white/10 focus:border-brand-gold/50 rounded-none file:bg-transparent file:text-white file:border-0 file:text-[10px] file:uppercase file:font-bold file:tracking-widest"
+              />
             </div>
           </div>
 
