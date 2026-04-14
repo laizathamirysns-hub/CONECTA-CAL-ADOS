@@ -45,7 +45,7 @@ export function Navbar({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const { itemCount } = useCart();
-  const { user, profile, signIn, logout, isLoginModalOpen, setIsLoginModalOpen } = useAuth();
+  const { user, profile, logout, isLoginModalOpen, setIsLoginModalOpen } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {

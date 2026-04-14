@@ -12,7 +12,6 @@ interface AuthContextType {
   user: User | null;
   profile: UserProfile | null;
   loading: boolean;
-  signIn: () => Promise<void>;
   signInWithEmail: (email: string, pass: string) => Promise<void>;
   signUp: (email: string, pass: string, name: string, role?: 'customer' | 'manufacturer') => Promise<void>;
   logout: () => Promise<void>;
@@ -146,25 +145,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signIn = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin,
-          queryParams: {
-            prompt: 'select_account',
-            access_type: 'offline',
-          }
-        }
-      });
-      if (error) throw error;
-    } catch (error) {
-      console.error('Sign in error:', error);
-      throw error;
-    }
-  };
-
   const signInWithEmail = async (email: string, pass: string) => {
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -218,7 +198,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user, 
       profile, 
       loading, 
-      signIn, 
       signInWithEmail,
       signUp,
       logout, 

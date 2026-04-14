@@ -16,7 +16,7 @@ interface LoginModalProps {
 }
 
 export function LoginModal({ isOpen, onClose }: LoginModalProps) {
-  const { signInWithEmail, signUp, signIn } = useAuth();
+  const { signInWithEmail, signUp } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -128,6 +128,11 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             )}
 
             {error && <p className="text-red-500 text-[10px] font-bold uppercase text-center">{error}</p>}
+            {error && error.includes('rate limit') && (
+              <p className="text-brand-gold text-[9px] font-bold uppercase text-center mt-2">
+                Dica: Se você for o administrador, desative a confirmação de e-mail no painel do Supabase para evitar este limite durante testes.
+              </p>
+            )}
 
             <Button 
               type="submit" 
@@ -137,23 +142,6 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (isLogin ? 'Entrar' : 'Cadastrar')}
             </Button>
           </form>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-white/10" />
-            </div>
-            <div className="relative flex justify-center text-[10px] uppercase tracking-widest font-bold">
-              <span className="bg-brand-dark px-2 text-white/20">Ou</span>
-            </div>
-          </div>
-
-          <Button 
-            variant="outline" 
-            onClick={() => signIn()}
-            className="w-full border-white/10 text-white hover:bg-white/5 rounded-none h-12 font-bold uppercase tracking-widest text-xs"
-          >
-            Entrar com Google
-          </Button>
 
           <p className="text-center text-[10px] font-bold uppercase tracking-widest text-white/40">
             {isLogin ? 'Não tem uma conta?' : 'Já tem uma conta?'}
